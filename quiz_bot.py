@@ -52,6 +52,13 @@ def attempt_answer(update: Update, context: CallbackContext, redis_connection, q
         update.message.reply_text("Неправильно… Попробуешь ещё раз?")
 
 
+def admit_defeat(update: Update, context: CallbackContext, redis_connection, questions_and_answers) -> None:
+    question = redis_connection.get(update.message.chat_id)
+    answer = get_answer(questions_and_answers[question])
+    update.message.reply_text(f"Неплохо! Вот правильный ответ: {answer}")
+    ask_new_question(update, context, redis_connection, questions_and_answers)
+
+
 def main() -> None:
     """Start the bot."""
     env = Env()
@@ -75,13 +82,21 @@ def main() -> None:
             'SELECTING_FEATURE': [
                 MessageHandler(
                     Filters.regex('^Новый вопрос$'),
-                    lambda update, context: ask_new_question(update, context, redis_connection, questions_and_answers),
+                    lambda update, context: ask_new_question(update, context, redis_connection, questions_and_answers)
                 ),
             ],
             'NEW_QUESTIONS': [
                 MessageHandler(
+                    Filters.regex('^Новый вопрос$'),
+                    lambda update, context: ask_new_question(update, context, redis_connection, questions_and_answers)
+                ),
+                MessageHandler(
+                    Filters.regex('^Сдаться$'),
+                    lambda update, context: admit_defeat(update, context, redis_connection, questions_and_answers)
+                ),
+                MessageHandler(
                     Filters.text & ~Filters.command,
-                    lambda update, context: attempt_answer(update, context, redis_connection, questions_and_answers),
+                    lambda update, context: attempt_answer(update, context, redis_connection, questions_and_answers)
                 ),
             ]
         },
