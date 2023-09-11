@@ -1,10 +1,11 @@
 import logging
 import random
+import redis
 
 from environs import Env
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
-from questions_and_answers import get_questions_and_answers
+from questions_and_answers import get_questions_and_answers, get_answer
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -15,12 +16,11 @@ logger = logging.getLogger(__name__)
 
 def start(update: Update, context: CallbackContext) -> str:
     """Send a message when the command /start is issued."""
-    user = update.effective_user
     buttons = [["Новый вопрос", "Сдаться"], ["Мой счёт"]]
     keyboard = ReplyKeyboardMarkup(buttons)
     context.bot.send_message(
         chat_id=update.message.chat_id,
-        text=f'Привет {user.mention_markdown_v2()}\nЯ бот для викторин',
+        text=f'Привет\nЯ бот для викторин',
         reply_markup=keyboard,
     )
 
@@ -32,13 +32,24 @@ def stop(update: Update, context: CallbackContext) -> None:
     update.message.reply_text('До встречи')
 
 
-def ask_new_question(update: Update, context: CallbackContext) -> str:
-    questions_and_answers = get_questions_and_answers()
+def ask_new_question(update: Update, context: CallbackContext, redis_connection, questions_and_answers) -> str:
     random_question = random.choice(list(questions_and_answers.keys()))
-    formatted_question = '\n'.join(line.strip() for line in random_question.split('\n')[1:])
-    update.message.reply_text(formatted_question)
+    redis_connection.set(update.message.chat_id, random_question)
+    update.message.reply_text(random_question)
 
-    return 'SELECTING_QUESTIONS'
+    return 'NEW_QUESTIONS'
+
+
+def attempt_answer(update: Update, context: CallbackContext, redis_connection, questions_and_answers) -> str:
+    question = redis_connection.get(update.message.chat_id)
+    answer = get_answer(questions_and_answers[question])
+    user_answer = update.message.text
+    if user_answer.lower() == answer.lower():
+        update.message.reply_text("Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос».")
+
+        return 'SELECTING_FEATURE'
+    else:
+        update.message.reply_text("Неправильно… Попробуешь ещё раз?")
 
 
 def main() -> None:
@@ -46,18 +57,33 @@ def main() -> None:
     env = Env()
     env.read_env()
     tg_bot_token = env('TG_BOT_TOKEN')
+    redis_host = env('REDIS_HOST')
+    redis_port = env('REDIS_PORT')
+    redis_password = env('REDIS_PASSWORD')
     updater = Updater(tg_bot_token)
+    redis_connection = redis.Redis(
+        host=redis_host,
+        port=redis_port,
+        password=redis_password,
+        decode_responses=True,
+    )
+    questions_and_answers = get_questions_and_answers()
     dispatcher = updater.dispatcher
-
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
             'SELECTING_FEATURE': [
                 MessageHandler(
                     Filters.regex('^Новый вопрос$'),
-                    ask_new_question,
+                    lambda update, context: ask_new_question(update, context, redis_connection, questions_and_answers),
                 ),
             ],
+            'NEW_QUESTIONS': [
+                MessageHandler(
+                    Filters.text & ~Filters.command,
+                    lambda update, context: attempt_answer(update, context, redis_connection, questions_and_answers),
+                ),
+            ]
         },
         fallbacks=[CommandHandler('stop', stop)],
     )

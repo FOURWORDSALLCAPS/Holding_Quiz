@@ -1,3 +1,6 @@
+import re
+
+
 def get_questions_and_answers():
     with open('quiz_questions/ierusa11.txt', 'r', encoding='KOI8-R') as file:
         file_content = file.read()
@@ -14,5 +17,13 @@ def get_questions_and_answers():
     return questions_answers
 
 
-if __name__ == '__main__':
-    get_questions_and_answers()
+def get_answer(user_answer):
+    answer = user_answer.replace('Ответ:\n', '')
+    if '(' in answer:
+        answer = re.sub(r'\([^)]*\)', '', answer)
+    period_position = answer.find('.')
+    if period_position != -1:
+        answer = answer[:period_position].strip()
+    answer = answer.replace('\n', ' ').replace('  ', ' ')
+
+    return answer
