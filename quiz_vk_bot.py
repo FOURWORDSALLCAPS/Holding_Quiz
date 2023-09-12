@@ -4,7 +4,7 @@ import redis
 import argparse
 
 from environs import Env
-from questions_and_answers import get_questions_and_answers, get_answer
+from questions_and_answers import get_questions_and_answers, filter_answer
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.utils import get_random_id
@@ -38,7 +38,7 @@ def ask_new_question(event, vk_api, questions_and_answers, redis_connection, key
 
 def attempt_answer(event, vk_api, questions_and_answers, redis_connection, keyboard) -> None:
     question = redis_connection.get(event.user_id)
-    answer = get_answer(questions_and_answers[question])
+    answer = filter_answer(questions_and_answers[question])
     user_answer = event.text
     if user_answer.lower() == answer.lower():
         vk_api.messages.send(
@@ -58,7 +58,7 @@ def attempt_answer(event, vk_api, questions_and_answers, redis_connection, keybo
 
 def admit_defeat(event, vk_api, questions_and_answers, redis_connection, keyboard) -> None:
     question = redis_connection.get(event.user_id)
-    answer = get_answer(questions_and_answers[question])
+    answer = filter_answer(questions_and_answers[question])
     vk_api.messages.send(
         user_id=event.user_id,
         random_id=get_random_id(),

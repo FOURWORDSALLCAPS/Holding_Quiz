@@ -6,7 +6,7 @@ import argparse
 from environs import Env
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
-from questions_and_answers import get_questions_and_answers, get_answer
+from questions_and_answers import get_questions_and_answers, filter_answer
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -41,7 +41,7 @@ def ask_new_question(update: Update, context: CallbackContext, redis_connection,
 
 def attempt_answer(update: Update, context: CallbackContext, redis_connection, questions_and_answers) -> str:
     question = redis_connection.get(update.message.chat_id)
-    answer = get_answer(questions_and_answers[question])
+    answer = filter_answer(questions_and_answers[question])
     user_answer = update.message.text
     if user_answer.lower() == answer.lower():
         update.message.reply_text("Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос».")
@@ -53,7 +53,7 @@ def attempt_answer(update: Update, context: CallbackContext, redis_connection, q
 
 def admit_defeat(update: Update, context: CallbackContext, redis_connection, questions_and_answers) -> None:
     question = redis_connection.get(update.message.chat_id)
-    answer = get_answer(questions_and_answers[question])
+    answer = filter_answer(questions_and_answers[question])
     update.message.reply_text(f"Неплохо! Вот правильный ответ: {answer}")
     ask_new_question(update, context, redis_connection, questions_and_answers)
 

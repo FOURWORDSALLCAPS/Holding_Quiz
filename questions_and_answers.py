@@ -17,8 +17,8 @@ def get_questions_and_answers(file_path):
     return questions_answers
 
 
-def get_answer(user_answer):
-    answer = user_answer.replace('Ответ:\n', '')
+def filter_answer(received_answer):
+    answer = received_answer.replace('Ответ:\n', '')
     if '(' in answer:
         answer = re.sub(r'\([^)]*\)', '', answer)
     period_position = answer.find('.')
