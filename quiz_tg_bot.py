@@ -1,6 +1,7 @@
 import logging
 import random
 import redis
+import argparse
 
 from environs import Env
 from telegram import Update, ReplyKeyboardMarkup
@@ -58,6 +59,11 @@ def admit_defeat(update: Update, context: CallbackContext, redis_connection, que
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description='Данный код позволяет записать вопросы и ответы из файла',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--dest_folder', type=str, default='quiz_questions/ierusa11.txt',
+                        help='Путь к файлу с вопросами и ответами')
+    args = parser.parse_args()
     env = Env()
     env.read_env()
     tg_bot_token = env('TG_BOT_TOKEN')
@@ -71,7 +77,7 @@ def main() -> None:
         password=redis_password,
         decode_responses=True,
     )
-    questions_and_answers = get_questions_and_answers()
+    questions_and_answers = get_questions_and_answers(args.dest_folder)
     dispatcher = updater.dispatcher
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],

@@ -1,8 +1,8 @@
 import re
 
 
-def get_questions_and_answers():
-    with open('quiz_questions/ierusa11.txt', 'r', encoding='KOI8-R') as file:
+def get_questions_and_answers(file_path):
+    with open(file_path, 'r', encoding='KOI8-R') as file:
         file_content = file.read()
     file_content_split = file_content.split('\n\n')
     questions = []

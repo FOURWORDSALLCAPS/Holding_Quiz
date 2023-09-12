@@ -1,6 +1,7 @@
 import vk_api as vk
 import random
 import redis
+import argparse
 
 from environs import Env
 from questions_and_answers import get_questions_and_answers, get_answer
@@ -68,6 +69,11 @@ def admit_defeat(event, vk_api, questions_and_answers, redis_connection, keyboar
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Данный код позволяет записать вопросы и ответы из файла',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--dest_folder', type=str, default='quiz_questions/ierusa11.txt',
+                        help='Путь к файлу с вопросами и ответами')
+    args = parser.parse_args()
     env = Env()
     env.read_env()
     vk_group_token = env("VK_GROUP_TOKEN")
@@ -80,7 +86,7 @@ def main():
         password=redis_password,
         decode_responses=True,
     )
-    questions_and_answers = get_questions_and_answers()
+    questions_and_answers = get_questions_and_answers(args.dest_folder)
     keyboard = VkKeyboard(one_time=True)
     keyboard.add_button('Новый вопрос', color=VkKeyboardColor.POSITIVE)
     keyboard.add_button('Сдаться', color=VkKeyboardColor.NEGATIVE)
