@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 def start(update: Update, context: CallbackContext) -> str:
-    """Send a message when the command /start is issued."""
     buttons = [["Новый вопрос", "Сдаться"], ["Мой счёт"]]
     keyboard = ReplyKeyboardMarkup(buttons)
     context.bot.send_message(
@@ -28,7 +27,6 @@ def start(update: Update, context: CallbackContext) -> str:
 
 
 def stop(update: Update, context: CallbackContext) -> None:
-    """End Conversation by command."""
     update.message.reply_text('До встречи')
 
 
@@ -60,7 +58,6 @@ def admit_defeat(update: Update, context: CallbackContext, redis_connection, que
 
 
 def main() -> None:
-    """Start the bot."""
     env = Env()
     env.read_env()
     tg_bot_token = env('TG_BOT_TOKEN')
